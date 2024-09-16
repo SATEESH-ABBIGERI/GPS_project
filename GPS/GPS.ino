@@ -1,25 +1,51 @@
-#include <SoftwareSerial.h>
+#include <WiFi.h>
 #include <TinyGPS++.h>
-#include <BluetoothSerial.h>// Assuming you need it for Bluetooth later
+#include <HardwareSerial.h>
 
-SoftwareSerial Dta(2, 3); // Pins 2 (RX) and 3 (TX) for GPS communication
-TinyGPSPlus gps;          // Create a TinyGPS++ object
+// WiFi credentials
+const char* ssid = "Abbigeri 4g";
+const char* password = "9480410589";
 
-void setup(){
-  Serial.begin(9600);     // Initialize serial monitor
-  Dta.begin(9600);        // Initialize SoftwareSerial for GPS
+// GPS
+TinyGPSPlus gps;
+HardwareSerial neo6mSerial(1); // Using Serial1 for the Neo-6M GPS module
+
+// Function to connect to WiFi
+void connectToWiFi() {
+  Serial.print("Connecting to WiFi");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  Serial.println("Connected to WiFi");
 }
 
-void loop(){
-  while (Dta.available() > 0) {
-    byte gpsData = Dta.read();
-    if (gps.encode(gpsData)) {    // Parse GPS data
-      if (gps.location.isValid()) {   // If valid GPS data
-        Serial.print("Latitude: ");
-        Serial.println(gps.location.lat(), 6);   // Print latitude
-        Serial.print("Longitude: ");
-        Serial.println(gps.location.lng(), 6);   // Print longitude
-      }
+void setup() {
+  Serial.begin(115200);
+  neo6mSerial.begin(9600, SERIAL_8N1, 16, 17); // RX = GPIO16, TX = GPIO17 (adjust based on wiring)
+
+  connectToWiFi();
+}
+
+void loop() {
+  while (neo6mSerial.available()) {
+    char c = neo6mSerial.read();
+    // Serial.print(c);
+
+    if(gps.encode(c)){
+
+    if (gps.location.isUpdated()) {
+      double latitude = gps.location.lat();
+      double longitude = gps.location.lng();
+
+      Serial.print("Latitude: ");
+      Serial.println(latitude);
+      Serial.print("Longitude: ");
+      Serial.println(longitude);
     }
   }
+}
 }
